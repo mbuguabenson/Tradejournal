@@ -1,7 +1,8 @@
-import { TrendingUp, Moon, Sun, RotateCcw, Wallet, Target, Plus, LayoutGrid, BarChart3, Bell, Sparkles, Clock, ChevronLeft, ChevronRight, Calendar, Download, Upload } from 'lucide-react';
+import { TrendingUp, Moon, Sun, RotateCcw, Wallet, Target, Plus, LayoutGrid, BarChart3, Bell, Sparkles, Clock, ChevronLeft, ChevronRight, Calendar, Download, Upload, ShieldCheck, Cloud, Database } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { getMonthLabel, getMonthShort } from '@/utils';
 import HistoryDropdown from '@/components/HistoryDropdown';
+import SettingsDropdown from '@/components/SettingsDropdown';
 import type { MonthData, TrackerData } from '@/types';
 
 type Page = 'dashboard' | 'profit-sheet';
@@ -14,6 +15,8 @@ type Props = {
   onReset: () => void;
   onExportData?: () => void;
   onImportData?: (file: File) => void;
+  onOpenBackupModal?: () => void;
+  supabaseConnected?: boolean;
   onNewMonth: () => void;
   onPrevMonth: () => void;
   onNextMonth: () => void;
@@ -34,6 +37,8 @@ export default function Header({
   onReset,
   onExportData,
   onImportData,
+  onOpenBackupModal,
+  supabaseConnected,
   onNewMonth,
   onPrevMonth,
   onNextMonth,
@@ -134,14 +139,31 @@ export default function Header({
               {darkMode ? <Sun className="w-3 h-3 text-amber-400" /> : <Moon className="w-3 h-3 text-cyan-600" />}
             </button>
 
+            {/* Backup & Supabase Cloud Sync Center Button */}
+            {onOpenBackupModal && (
+              <button
+                onClick={onOpenBackupModal}
+                className={`btn-secondary px-2.5 h-7 flex items-center gap-1.5 text-[10px] font-bold rounded-lg shadow-sm transition-all ${
+                  supabaseConnected
+                    ? 'border-emerald-500/40 text-emerald-600 dark:text-emerald-400 bg-emerald-500/5 hover:bg-emerald-500/15'
+                    : 'text-cyan-600 dark:text-cyan-400 border border-cyan-500/25 hover:border-cyan-500/60 hover:bg-cyan-500/10'
+                }`}
+                title="Supabase Cloud & Backup Center"
+              >
+                <Database className="w-3 h-3" />
+                <span>{supabaseConnected ? 'Supabase: Synced' : 'Supabase Sync'}</span>
+                {supabaseConnected && <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />}
+              </button>
+            )}
+
             {/* Backup / Export Button */}
             {onExportData && (
               <button
                 onClick={onExportData}
-                className="btn-secondary px-2 h-7 flex items-center gap-1 text-[10px] font-bold rounded-lg text-cyan-600 dark:text-cyan-400"
-                title="Backup all data to JSON file"
+                className="btn-secondary px-2 h-7 flex items-center gap-1 text-[10px] font-bold rounded-lg text-slate-600 dark:text-slate-300"
+                title="Quick backup to JSON file"
               >
-                <Download className="w-3 h-3" /> <span className="hidden md:inline">Backup</span>
+                <Download className="w-3 h-3" /> <span className="hidden md:inline">Export</span>
               </button>
             )}
 
@@ -285,6 +307,9 @@ export default function Header({
                   placeholder="0.00"
                 />
               </div>
+
+              {/* Settings Dropdown for Sessions & Target */}
+              <SettingsDropdown month={month} onUpdateMonth={onUpdateMonth} />
             </div>
           )}
         </div>

@@ -5,6 +5,8 @@ import SummaryCards from '@/components/SummaryCards';
 import TradingTable from '@/components/TradingTable';
 import Analysis from '@/components/Analysis';
 import ProfitSheetPage from '@/components/ProfitSheetPage';
+import BackupSyncModal from '@/components/BackupSyncModal';
+import { getStoredSupabaseConfig, saveJournalToSupabase } from '@/supabase';
 import {
   parseNum,
   getMonthKey,
@@ -37,6 +39,11 @@ export default function App() {
   });
 
   const [page, setPage] = useState<Page>('dashboard');
+  const [isBackupModalOpen, setIsBackupModalOpen] = useState(false);
+  const [supabaseConnected, setSupabaseConnected] = useState<boolean>(() => {
+    const cfg = getStoredSupabaseConfig();
+    return Boolean(cfg.url && cfg.anonKey);
+  });
 
   const currentMonthKey = useMemo(() => getMonthKey(new Date()), []);
 
@@ -79,6 +86,16 @@ export default function App() {
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify({ data, lastMonth: monthKey }));
+
+    const cfg = getStoredSupabaseConfig();
+    if (cfg.autoSync && cfg.url && cfg.anonKey) {
+      const timer = setTimeout(() => {
+        saveJournalToSupabase(data, monthKey).catch((err) => {
+          console.warn('Background Supabase auto-sync failed:', err);
+        });
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
   }, [data, monthKey]);
 
   const month: MonthData = data[monthKey] ?? createEmptyMonth(monthKey);
@@ -224,6 +241,8 @@ export default function App() {
           onReset={resetMonth}
           onExportData={exportData}
           onImportData={importData}
+          onOpenBackupModal={() => setIsBackupModalOpen(true)}
+          supabaseConnected={supabaseConnected}
           onNewMonth={newMonth}
           onPrevMonth={prevMonth}
           onNextMonth={nextMonth}
@@ -354,6 +373,23 @@ export default function App() {
             }}
           />
         )}
+
+        {/* Cloud & Offline Backup / Sync Modal */}
+        <BackupSyncModal
+          isOpen={isBackupModalOpen}
+          onClose={() => setIsBackupModalOpen(false)}
+          data={data}
+          monthKey={monthKey}
+          onRestoreData={(newData, newKey) => {
+            setData(newData);
+            if (newKey && newData[newKey]) {
+              setMonthKey(newKey);
+            }
+          }}
+          onConfigChange={() => {
+            setSupabaseConnected(Boolean(getStoredSupabaseConfig().url && getStoredSupabaseConfig().anonKey));
+          }}
+        />
       </div>
     </div>
   );
