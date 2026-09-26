@@ -1,4 +1,4 @@
-import { TrendingUp, Moon, Sun, RotateCcw, Wallet, Target, Plus, LayoutGrid, BarChart3, Bell, Sparkles, Clock, ChevronLeft, ChevronRight, Calendar, Download, Upload, ShieldCheck, Cloud, Database } from 'lucide-react';
+import { TrendingUp, Moon, Sun, RotateCcw, Wallet, Target, Plus, LayoutGrid, BarChart3, Bell, Sparkles, Clock, ChevronLeft, ChevronRight, Calendar, Download, Upload, ShieldCheck, Cloud, Database, PanelLeft } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { getMonthLabel, getMonthShort } from '@/utils';
 import HistoryDropdown from '@/components/HistoryDropdown';
@@ -17,6 +17,8 @@ type Props = {
   onImportData?: (file: File) => void;
   onOpenBackupModal?: () => void;
   supabaseConnected?: boolean;
+  onToggleSidebar?: () => void;
+  isSidebarOpen?: boolean;
   onNewMonth: () => void;
   onPrevMonth: () => void;
   onNextMonth: () => void;
@@ -39,6 +41,8 @@ export default function Header({
   onImportData,
   onOpenBackupModal,
   supabaseConnected,
+  onToggleSidebar,
+  isSidebarOpen,
   onNewMonth,
   onPrevMonth,
   onNextMonth,
@@ -82,8 +86,24 @@ export default function Header({
       <div className="flex flex-col gap-2">
         {/* Top bar: Title + Live Clock + Segmented pill tabs + Action buttons */}
         <div className="flex flex-wrap items-center justify-between gap-2">
-          {/* Logo & Current Date in Header Top Left */}
-          <div className="flex items-center gap-2.5">
+          {/* Logo, Configs Button & Current Date in Header Top Left */}
+          <div className="flex items-center gap-2 sm:gap-2.5">
+            {onToggleSidebar && (
+              <button
+                type="button"
+                onClick={onToggleSidebar}
+                className={`px-2.5 h-7.5 flex items-center gap-1.5 text-xs font-black rounded-xl transition-all shadow-sm ${
+                  isSidebarOpen
+                    ? 'bg-cyan-500 text-white shadow-glow-cyan'
+                    : 'btn-secondary text-cyan-600 dark:text-cyan-400 border border-cyan-500/25 hover:border-cyan-500/60 hover:bg-cyan-500/10'
+                }`}
+                title="Open Journal Configs & Settings Sidebar"
+              >
+                <PanelLeft className="w-4 h-4" />
+                <span className="hidden xs:inline">Configs</span>
+              </button>
+            )}
+
             <div className="w-7 h-7 rounded-lg flex items-center justify-center bg-gradient-to-tr from-cyan-400 to-blue-600 shadow-glow-cyan text-white shadow-sm shrink-0">
               <Calendar className="w-3.5 h-3.5" />
             </div>

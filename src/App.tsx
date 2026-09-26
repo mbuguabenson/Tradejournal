@@ -6,6 +6,7 @@ import TradingTable from '@/components/TradingTable';
 import Analysis from '@/components/Analysis';
 import ProfitSheetPage from '@/components/ProfitSheetPage';
 import BackupSyncModal from '@/components/BackupSyncModal';
+import Sidebar from '@/components/Sidebar';
 import { getStoredSupabaseConfig, saveJournalToSupabase } from '@/supabase';
 import {
   parseNum,
@@ -40,6 +41,7 @@ export default function App() {
 
   const [page, setPage] = useState<Page>('dashboard');
   const [isBackupModalOpen, setIsBackupModalOpen] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [supabaseConnected, setSupabaseConnected] = useState<boolean>(() => {
     const cfg = getStoredSupabaseConfig();
     return Boolean(cfg.url && cfg.anonKey);
@@ -243,6 +245,8 @@ export default function App() {
           onImportData={importData}
           onOpenBackupModal={() => setIsBackupModalOpen(true)}
           supabaseConnected={supabaseConnected}
+          onToggleSidebar={() => setIsSidebarOpen((v) => !v)}
+          isSidebarOpen={isSidebarOpen}
           onNewMonth={newMonth}
           onPrevMonth={prevMonth}
           onNextMonth={nextMonth}
@@ -255,23 +259,14 @@ export default function App() {
           data={data}
         />
 
-        {/* Target Milestone Bar + Key Financial Metrics Bar Directly Below Header */}
+        {/* MODERN BALANCED KEY FINANCIAL METRICS BAR DIRECTLY BELOW HEADER */}
         {page === 'dashboard' && (
-          <>
-            <TargetProgress
-              month={month}
-              finalCumulative={finalCumulative}
-              onUpdateMonth={updateMonth}
-            />
-
-            {/* REDUCED KEY FINANCIAL METRICS BAR DIRECTLY BELOW TARGET MILESTONE */}
-            <SummaryCards
-              totals={totals}
-              finalCumulative={finalCumulative}
-              startingCapital={parseNum(month.startingCapital)}
-              stats={stats}
-            />
-          </>
+          <SummaryCards
+            totals={totals}
+            finalCumulative={finalCumulative}
+            startingCapital={parseNum(month.startingCapital)}
+            stats={stats}
+          />
         )}
 
         {page === 'dashboard' ? (
@@ -388,6 +383,34 @@ export default function App() {
           }}
           onConfigChange={() => {
             setSupabaseConnected(Boolean(getStoredSupabaseConfig().url && getStoredSupabaseConfig().anonKey));
+          }}
+        />
+
+        {/* Challenge Configs & Parameters Sidebar */}
+        <Sidebar
+          isOpen={isSidebarOpen}
+          onClose={() => setIsSidebarOpen(false)}
+          month={month}
+          monthKey={monthKey}
+          currentMonthKey={currentMonthKey}
+          allMonthKeys={allMonthKeys}
+          onUpdateMonth={updateMonth}
+          onMonthChange={changeMonth}
+          onPrevMonth={prevMonth}
+          onNextMonth={nextMonth}
+          onNewMonth={newMonth}
+          finalCumulative={finalCumulative}
+          page={page}
+          onPageChange={setPage}
+          supabaseConnected={supabaseConnected}
+          onOpenBackupModal={() => setIsBackupModalOpen(true)}
+          onReset={resetMonth}
+          darkMode={darkMode}
+          toggleDark={() => setDarkMode((d) => !d)}
+          data={data}
+          onRestoreData={(newData, newKey) => {
+            setData(newData);
+            if (newKey && newData[newKey]) setMonthKey(newKey);
           }}
         />
       </div>
