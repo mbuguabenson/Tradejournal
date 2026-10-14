@@ -10,6 +10,7 @@ export default defineConfig({
       '@': fileURLToPath(new URL('./src', import.meta.url)),
     },
   },
+  envPrefix: ['VITE_', 'NEXT_PUBLIC_', 'SUPABASE_'],
   optimizeDeps: {
     exclude: ['lucide-react'],
   },

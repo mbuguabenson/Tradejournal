@@ -14,8 +14,17 @@ export interface SupabaseConfig {
 }
 
 export function getStoredSupabaseConfig(): SupabaseConfig {
-  const envUrl = (import.meta.env.VITE_SUPABASE_URL as string) || '';
-  const envKey = (import.meta.env.VITE_SUPABASE_ANON_KEY as string) || '';
+  const envUrl =
+    (import.meta.env.VITE_SUPABASE_URL as string) ||
+    (import.meta.env.NEXT_PUBLIC_SUPABASE_URL as string) ||
+    (import.meta.env.SUPABASE_URL as string) ||
+    '';
+  const envKey =
+    (import.meta.env.VITE_SUPABASE_ANON_KEY as string) ||
+    (import.meta.env.SUPABASE_ANON_KEY as string) ||
+    (import.meta.env.NEXT_PUBLIC_SUPABASE_ANON_KEY as string) ||
+    (import.meta.env.SUPABASE_PUBLISHABLE_KEY as string) ||
+    '';
   const localUrl = localStorage.getItem(STORAGE_URL_KEY) || '';
   const localKey = localStorage.getItem(STORAGE_KEY_KEY) || '';
   const syncId = localStorage.getItem(STORAGE_SYNC_ID_KEY) || 'my-trade-journal';
