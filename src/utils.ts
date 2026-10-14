@@ -236,3 +236,89 @@ export function aggregateMonths(data: TrackerData, monthKeys: string[]) {
     dailyProfits, cumulativeProfits, strategyBreakdown,
   };
 }
+
+export function exportMonthToCSV(
+  computed: ComputedDay[],
+  monthKey: string,
+  sessionCount: number,
+  dailyTargetGoal: number = 0
+): void {
+  const headers = [
+    'Day',
+    'Date',
+    'Weekday',
+    ...Array.from({ length: sessionCount }, (_, i) => `Session ${i + 1} ($)`),
+    'Profit / Loss ($)',
+    'Cumulative Profit ($)',
+    'Withdrawn ($)',
+    'Strategy',
+    'Target Status',
+    'Loss / Recovery',
+    'Notes',
+  ];
+
+  const escapeCSV = (val: string | number) => {
+    const s = String(val ?? '');
+    if (s.includes(',') || s.includes('"') || s.includes('\n')) {
+      return `"${s.replace(/"/g, '""')}"`;
+    }
+    return s;
+  };
+
+  const rows = computed.map((r, idx) => {
+    const { weekday, fullDate } = formatDayDate(monthKey, r.day);
+    const hasData = r.sessions.some((s) => s !== '');
+
+    const hadPriorLoss = computed.slice(0, idx).some(
+      (prev) => prev.sessions.some((s) => s !== '') && prev.profitLoss < 0
+    );
+    const isLossDay = hasData && r.profitLoss < 0;
+    const isRecoveryDay = hasData && r.profitLoss > 0 && hadPriorLoss;
+
+    const lossRecStatus = !hasData
+      ? ''
+      : isLossDay
+      ? 'Loss'
+      : isRecoveryDay
+      ? 'Recovered'
+      : '';
+
+    const isReached = dailyTargetGoal > 0 ? r.profitLoss >= dailyTargetGoal : r.profitLoss > 0;
+    const targetStatus = !hasData
+      ? ''
+      : isReached
+      ? 'Target Hit'
+      : r.profitLoss < 0
+      ? 'Loss / Missed'
+      : 'Positive (Below Target)';
+
+    const sessionVals = Array.from({ length: sessionCount }, (_, i) => r.sessions[i] || '0');
+
+    return [
+      r.day,
+      fullDate,
+      weekday,
+      ...sessionVals,
+      r.profitLoss.toFixed(2),
+      r.cumulativeProfit.toFixed(2),
+      r.withdrawn || '0',
+      r.strategy,
+      targetStatus,
+      lossRecStatus,
+      r.note || '',
+    ]
+      .map(escapeCSV)
+      .join(',');
+  });
+
+  const csvContent = [headers.map(escapeCSV).join(','), ...rows].join('\r\n');
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `TradeJournal_${monthKey}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}

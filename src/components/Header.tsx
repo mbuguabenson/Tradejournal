@@ -14,6 +14,7 @@ type Props = {
   onPageChange: (page: Page) => void;
   onReset: () => void;
   onExportData?: () => void;
+  onExportCSV?: () => void;
   onImportData?: (file: File) => void;
   onOpenBackupModal?: () => void;
   supabaseConnected?: boolean;
@@ -39,6 +40,7 @@ export default function Header({
   onPageChange,
   onReset,
   onExportData,
+  onExportCSV,
   onImportData,
   onOpenBackupModal,
   supabaseConnected,
@@ -209,9 +211,20 @@ export default function Header({
               <button
                 onClick={onExportData}
                 className="btn-secondary px-2 h-7 flex items-center gap-1 text-[10px] font-bold rounded-lg text-slate-600 dark:text-slate-300"
-                title="Quick backup to JSON file"
+                title="Quick backup entire journal to JSON file"
               >
-                <Download className="w-3 h-3" /> <span className="hidden md:inline">Export</span>
+                <Download className="w-3 h-3 text-cyan-500" /> <span className="hidden md:inline">JSON</span>
+              </button>
+            )}
+
+            {/* CSV Export Button */}
+            {onExportCSV && (
+              <button
+                onClick={onExportCSV}
+                className="btn-secondary px-2 h-7 flex items-center gap-1 text-[10px] font-bold rounded-lg text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/10"
+                title="Export current month to CSV (Excel / Google Sheets)"
+              >
+                <Download className="w-3 h-3 text-emerald-500" /> <span className="hidden md:inline">CSV</span>
               </button>
             )}
 

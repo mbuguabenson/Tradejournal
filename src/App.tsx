@@ -18,6 +18,7 @@ import {
   createEmptyMonth,
   createEmptyRows,
   createSampleMonth,
+  exportMonthToCSV,
 } from '@/utils';
 import type { TrackerData, MonthData, Strategy } from '@/types';
 
@@ -316,6 +317,7 @@ export default function App() {
           onPageChange={setPage}
           onReset={resetMonth}
           onExportData={exportData}
+          onExportCSV={() => exportMonthToCSV(computed, monthKey, month.sessionCount, dailyTargetGoal)}
           onImportData={importData}
           onOpenBackupModal={() => setIsBackupModalOpen(true)}
           supabaseConnected={supabaseConnected}
