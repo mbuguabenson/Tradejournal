@@ -17,6 +17,7 @@ type Props = {
   onImportData?: (file: File) => void;
   onOpenBackupModal?: () => void;
   supabaseConnected?: boolean;
+  cloudStatus?: 'idle' | 'loading' | 'synced' | 'saving' | 'error';
   onToggleSidebar?: () => void;
   isSidebarOpen?: boolean;
   onNewMonth: () => void;
@@ -41,6 +42,7 @@ export default function Header({
   onImportData,
   onOpenBackupModal,
   supabaseConnected,
+  cloudStatus = 'idle',
   onToggleSidebar,
   isSidebarOpen,
   onNewMonth,
@@ -164,15 +166,41 @@ export default function Header({
               <button
                 onClick={onOpenBackupModal}
                 className={`btn-secondary px-2.5 h-7 flex items-center gap-1.5 text-[10px] font-bold rounded-lg shadow-sm transition-all ${
-                  supabaseConnected
+                  cloudStatus === 'synced'
                     ? 'border-emerald-500/40 text-emerald-600 dark:text-emerald-400 bg-emerald-500/5 hover:bg-emerald-500/15'
-                    : 'text-cyan-600 dark:text-cyan-400 border border-cyan-500/25 hover:border-cyan-500/60 hover:bg-cyan-500/10'
+                    : cloudStatus === 'saving' || cloudStatus === 'loading'
+                    ? 'border-cyan-500/40 text-cyan-600 dark:text-cyan-400 bg-cyan-500/5 hover:bg-cyan-500/15'
+                    : cloudStatus === 'error'
+                    ? 'border-rose-500/40 text-rose-600 dark:text-rose-400 bg-rose-500/5 hover:bg-rose-500/15'
+                    : supabaseConnected
+                    ? 'border-emerald-500/40 text-emerald-600 dark:text-emerald-400 bg-emerald-500/5 hover:bg-emerald-500/15'
+                    : 'text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-white/10 hover:bg-slate-100 dark:hover:bg-slate-800'
                 }`}
-                title="Supabase Cloud & Backup Center"
+                title="Supabase Cloud Storage & Sync"
               >
                 <Database className="w-3 h-3" />
-                <span>{supabaseConnected ? 'Supabase: Synced' : 'Supabase Sync'}</span>
-                {supabaseConnected && <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />}
+                <span>
+                  {cloudStatus === 'loading'
+                    ? 'Connecting...'
+                    : cloudStatus === 'saving'
+                    ? 'Saving to Cloud...'
+                    : cloudStatus === 'synced'
+                    ? 'Cloud Synced'
+                    : cloudStatus === 'error'
+                    ? 'Cloud Error'
+                    : supabaseConnected
+                    ? 'Supabase Cloud'
+                    : 'Supabase Sync'}
+                </span>
+                {cloudStatus === 'synced' && (
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-sm" />
+                )}
+                {(cloudStatus === 'saving' || cloudStatus === 'loading') && (
+                  <span className="w-1.5 h-1.5 rounded-full bg-cyan-500 animate-ping" />
+                )}
+                {cloudStatus === 'error' && (
+                  <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
+                )}
               </button>
             )}
 

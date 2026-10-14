@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import Header from '@/components/Header';
 import TargetProgress from '@/components/TargetProgress';
 import SummaryCards from '@/components/SummaryCards';
@@ -7,7 +7,7 @@ import Analysis from '@/components/Analysis';
 import ProfitSheetPage from '@/components/ProfitSheetPage';
 import BackupSyncModal from '@/components/BackupSyncModal';
 import Sidebar from '@/components/Sidebar';
-import { getStoredSupabaseConfig, saveJournalToSupabase } from '@/supabase';
+import { getStoredSupabaseConfig, saveJournalToSupabase, loadJournalFromSupabase } from '@/supabase';
 import {
   parseNum,
   getMonthKey,
@@ -46,6 +46,12 @@ export default function App() {
     const cfg = getStoredSupabaseConfig();
     return Boolean(cfg.url && cfg.anonKey);
   });
+  const [cloudStatus, setCloudStatus] = useState<'idle' | 'loading' | 'synced' | 'saving' | 'error'>(() => {
+    const cfg = getStoredSupabaseConfig();
+    return cfg.url && cfg.anonKey ? 'loading' : 'idle';
+  });
+  const [, setCloudError] = useState<string | null>(null);
+  const isInitialLoadDone = useRef(false);
 
   const currentMonthKey = useMemo(() => getMonthKey(new Date()), []);
 
@@ -86,16 +92,84 @@ export default function App() {
     localStorage.setItem('tt-theme', darkMode ? 'dark' : 'light');
   }, [darkMode]);
 
+  // Primary Datastore: Fetch from Supabase on app start
+  useEffect(() => {
+    const cfg = getStoredSupabaseConfig();
+    if (!cfg.url || !cfg.anonKey) {
+      setCloudStatus('idle');
+      isInitialLoadDone.current = true;
+      return;
+    }
+
+    let isCancelled = false;
+    setCloudStatus('loading');
+
+    loadJournalFromSupabase(cfg.syncId)
+      .then((res) => {
+        if (isCancelled) return;
+        if (res.success && res.data && Object.keys(res.data).length > 0) {
+          setData(res.data);
+          if (res.lastMonth && res.data[res.lastMonth]) {
+            setMonthKey(res.lastMonth);
+          }
+          setCloudStatus('synced');
+          setCloudError(null);
+        } else if (res.success) {
+          // Empty remote database: upload current dataset to initialize
+          setCloudStatus('saving');
+          saveJournalToSupabase(data, monthKey, cfg.syncId).then((saveRes) => {
+            if (isCancelled) return;
+            if (saveRes.success) {
+              setCloudStatus('synced');
+            } else {
+              setCloudStatus('error');
+              setCloudError(saveRes.error || 'Failed to initialize database');
+            }
+          });
+        } else {
+          setCloudStatus('error');
+          setCloudError(res.error || 'Failed to connect to Supabase');
+        }
+      })
+      .catch((err) => {
+        if (isCancelled) return;
+        setCloudStatus('error');
+        setCloudError(String(err));
+      })
+      .finally(() => {
+        isInitialLoadDone.current = true;
+      });
+
+    return () => {
+      isCancelled = true;
+    };
+  }, []);
+
+  // Continuous Auto-Save to Supabase on any change
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify({ data, lastMonth: monthKey }));
 
+    if (!isInitialLoadDone.current) return;
+
     const cfg = getStoredSupabaseConfig();
     if (cfg.autoSync && cfg.url && cfg.anonKey) {
+      setCloudStatus('saving');
       const timer = setTimeout(() => {
-        saveJournalToSupabase(data, monthKey).catch((err) => {
-          console.warn('Background Supabase auto-sync failed:', err);
-        });
-      }, 2000);
+        saveJournalToSupabase(data, monthKey, cfg.syncId)
+          .then((res) => {
+            if (res.success) {
+              setCloudStatus('synced');
+              setCloudError(null);
+            } else {
+              setCloudStatus('error');
+              setCloudError(res.error || 'Failed to sync to Supabase');
+            }
+          })
+          .catch((err) => {
+            setCloudStatus('error');
+            setCloudError(String(err));
+          });
+      }, 1000);
       return () => clearTimeout(timer);
     }
   }, [data, monthKey]);
@@ -245,6 +319,7 @@ export default function App() {
           onImportData={importData}
           onOpenBackupModal={() => setIsBackupModalOpen(true)}
           supabaseConnected={supabaseConnected}
+          cloudStatus={cloudStatus}
           onToggleSidebar={() => setIsSidebarOpen((v) => !v)}
           isSidebarOpen={isSidebarOpen}
           onNewMonth={newMonth}

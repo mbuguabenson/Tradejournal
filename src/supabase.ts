@@ -28,7 +28,9 @@ export function getStoredSupabaseConfig(): SupabaseConfig {
   const localUrl = localStorage.getItem(STORAGE_URL_KEY) || '';
   const localKey = localStorage.getItem(STORAGE_KEY_KEY) || '';
   const syncId = localStorage.getItem(STORAGE_SYNC_ID_KEY) || 'my-trade-journal';
-  const autoSync = localStorage.getItem(STORAGE_AUTO_SYNC_KEY) === 'true';
+  const hasCreds = Boolean(envUrl || localUrl);
+  const autoSyncSaved = localStorage.getItem(STORAGE_AUTO_SYNC_KEY);
+  const autoSync = autoSyncSaved !== null ? autoSyncSaved === 'true' : hasCreds;
 
   return {
     url: envUrl || localUrl,
@@ -120,11 +122,11 @@ export async function loadJournalFromSupabase(
       .from('trade_journal')
       .select('*')
       .eq('id', syncId)
-      .single();
+      .maybeSingle();
 
     if (error) throw error;
     if (!record || !record.data) {
-      return { success: false, error: `No journal found under ID "${syncId}". Save first to create it!` };
+      return { success: true, data: undefined, lastMonth: undefined };
     }
 
     return {
