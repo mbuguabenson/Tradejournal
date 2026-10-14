@@ -1,4 +1,4 @@
-import { StickyNote, Calendar, FileText, CheckCircle2, ChevronDown, Check, X as XIcon } from 'lucide-react';
+import { StickyNote, Calendar, FileText, CheckCircle2, ChevronDown, TrendingDown, TrendingUp } from 'lucide-react';
 import { useState } from 'react';
 import { fmtUSD, getStrategyColor, formatDayDate, parseNum } from '@/utils';
 import type { ComputedDay, Strategy } from '@/types';
@@ -110,11 +110,18 @@ export default function TradingTable({
                   <th className="px-1 py-1.5 text-center w-12">Strat</th>
                   <th className="px-2 py-1.5 text-center w-20">Progress</th>
                   <th className="px-2 py-1.5 text-center w-24">Target Status</th>
+                  <th className="px-2 py-1.5 text-center w-20">Loss / Rec.</th>
                   <th className="px-1 py-1.5 text-center w-7"></th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-white/5">
                 {computed.map((r, idx) => {
+                  // Determine prior-loss: any previous day with data that had a loss
+                  const hadPriorLoss = computed.slice(0, idx).some(
+                    (prev) => prev.sessions.some((s) => s !== '') && prev.profitLoss < 0
+                  );
+                  const isLossDay = r.sessions.some((s) => s !== '') && r.profitLoss < 0;
+                  const isRecoveryDay = r.sessions.some((s) => s !== '') && r.profitLoss > 0 && hadPriorLoss;
                   const { formatted, weekday, isWeekend, fullDate } = formatDayDate(monthKey, r.day);
                   const isToday = fullDate === todayISO;
                   const hasData = r.sessions.some((s) => s !== '');
@@ -257,6 +264,23 @@ export default function TradingTable({
                         )}
                       </td>
 
+                      {/* Loss / Recovery */}
+                      <td className="px-1.5 py-0.5 text-center">
+                        {!r.sessions.some((s) => s !== '') ? (
+                          <span className="text-[10px] font-bold text-slate-300 dark:text-slate-600">—</span>
+                        ) : isLossDay ? (
+                          <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[9px] font-black bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/25">
+                            <TrendingDown className="w-2.5 h-2.5" /> Loss
+                          </span>
+                        ) : isRecoveryDay ? (
+                          <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[9px] font-black bg-violet-500/15 text-violet-600 dark:text-violet-400 border border-violet-500/25">
+                            <TrendingUp className="w-2.5 h-2.5" /> Recovered
+                          </span>
+                        ) : (
+                          <span className="text-[10px] font-bold text-slate-300 dark:text-slate-600">—</span>
+                        )}
+                      </td>
+
                       {/* Note Button */}
                       <td className="px-0.5 py-0.5 text-center">
                         <button
@@ -299,6 +323,18 @@ export default function TradingTable({
                   </td>
                   <td className="px-1.5 py-1.5 text-center text-[10px] font-black text-emerald-600 dark:text-emerald-400">
                     {reachedCount}/{completedCount} Hit
+                  </td>
+                  <td className="px-1.5 py-1.5 text-center text-[9px] font-bold text-slate-400">
+                    {(() => {
+                      const lossCount = computed.filter(r => r.sessions.some(s => s !== '') && r.profitLoss < 0).length;
+                      const recCount = computed.filter((r, i) => {
+                        const prior = computed.slice(0, i).some(p => p.sessions.some(s => s !== '') && p.profitLoss < 0);
+                        return r.sessions.some(s => s !== '') && r.profitLoss > 0 && prior;
+                      }).length;
+                      return lossCount > 0 ? (
+                        <span className="text-rose-500">{lossCount}L / <span className="text-violet-400">{recCount}R</span></span>
+                      ) : '—';
+                    })()}
                   </td>
                   <td className="px-1 py-1.5"></td>
                 </tr>
